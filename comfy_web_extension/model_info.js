@@ -1,4 +1,10 @@
-import { $el } from "../scripts/ui.js";
+// import {
+//     createSignal,
+//     onCleanup,
+// } from "https://cdn.skypack.dev/solid-js";
+import { render } from "https://cdn.skypack.dev/solid-js/web";
+//import html from "https://cdn.skypack.dev/solid-js/html";
+import h from "https://cdn.skypack.dev/solid-js/h";
 
 class ModelInfoAPI {
     constructor() {
@@ -38,9 +44,10 @@ class ModelInfo {
     }
 
     createUI() {
+        console.log("UIT!");
         if(this.ownMenu) {
-            this.menuContainer = $el("div.comfy-menu", {parent: document.body}, [
-                $el("div.drag-handle", {
+            this.menuContainer = h("div.comfy-menu", {}, [
+                h("div.drag-handle", {
                     style: {
                         overflow: "hidden",
                         position: "relative",
@@ -48,9 +55,9 @@ class ModelInfo {
                         cursor: "default"
                     }
                 }, [
-                    $el("span.drag-handle"),
-                    $el("span", {$: (q) => (this.queueSize = q)}),
-                    $el("button.comfy-settings-btn", {textContent: "⚙️", onclick: () => console.log("click")}),
+                    h("span.drag-handle"),
+                    h("span", {$: (q) => (this.queueSize = q)}),
+                    h("button.comfy-settings-btn", {textContent: "⚙️", onclick: () => console.log("click")}),
                 ])
             ]);
         }
@@ -58,8 +65,7 @@ class ModelInfo {
             this.menuContainer = this.integration.getMenuContainer();
         }
 
-        this.modelButton = $el("button", {
-            parent: this.menuContainer,
+        this.modelButton = h("button", {
             textContent: "models",
             onclick: async (ev) => {
                 let modelMenu = new LiteGraph.ContextMenu(this.modelTypes, {
@@ -78,6 +84,9 @@ class ModelInfo {
                 });
             }
         });
+
+        console.log(this.modelButton, this.menuContainer);
+        render(this.modelButton, this.menuContainer);
     }
 
     async selectModel(name) {
@@ -88,6 +97,7 @@ class ModelInfo {
     }
 
     init() {
+        console.log("init");
         this.info = new ModelInfoAPI();
         this.createUI();
     }
@@ -109,5 +119,6 @@ async function RegisterComfyApp() {
 }
 
 if(true) {
-    RegisterComfyApp();
+    console.log("register");
+    await RegisterComfyApp();
 }
