@@ -9,6 +9,8 @@ import h from "https://cdn.skypack.dev/solid-js/h";
 class ModelInfoAPI {
     constructor() {
         this.url = new URL(location);
+        this.url.pathname += "model_info/";
+        return;
         if(this.url.port.length > 0) {
             this.url.port = Number(this.url.port) + 1;
         }
@@ -107,8 +109,8 @@ class ModelInfo {
 };
 
 async function RegisterComfyApp() {
-    const app = (await import("../scripts/app.js")).app;
-    const api = (await import("../scripts/api.js")).api;
+    const app = (await import("../../scripts/app.js")).app;
+    const api = (await import("../../scripts/api.js")).api;
 
     class ComfyIntegration {
         getMenuContainer() {

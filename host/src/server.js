@@ -4,6 +4,7 @@ import optionator from 'optionator';
 import Walk from '@root/walk';
 import path from 'path';
 import cors from 'cors';
+import * as url from 'url';
 import * as civitai from './civitai.js';
 
 const app = express();
@@ -120,6 +121,12 @@ let options = optionator({
             alias: 'l',
             type: '[String]',
             concatRepeatedArrays: true
+        },
+        {
+            option: 'defaultPaths',
+            alias: 'd',
+            type: 'Boolean',
+            default: "true"
         }
     ]
 }).parseArgv(process.argv);
@@ -129,6 +136,11 @@ if(options.checkpoint) {
 }
 if(options.lora) {
     dirs.loras = options.lora;
+}
+if(options.defaultPaths) {
+    let modelsDir = path.join(url.fileURLToPath(new URL('.', import.meta.url)), "../../../../models")
+    dirs.checkpoints.push(path.join(modelsDir, "checkpoints"));  
+    dirs.loras.push(path.join(modelsDir, "loras"));
 }
 
 let server = http.createServer(app);
