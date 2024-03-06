@@ -7,6 +7,13 @@ import h from "https://cdn.skypack.dev/solid-js/h";
 import { createSignal, Show } from "https://cdn.skypack.dev/solid-js";
 import { Select } from "https://cdn.skypack.dev/@kobalte/core";
 
+//import "./style.css";
+let styleLink = document.createElement("link");
+styleLink.rel = "stylesheet";
+styleLink.type = "text/css";
+styleLink.href = "/extensions/sd_model_info/style.css";
+document.head.appendChild(styleLink);
+
 class ModelInfoAPI {
     constructor() {
         this.url = new URL(location);
@@ -70,28 +77,50 @@ class ModelInfo {
         this.modelButton = h(
             Select.Root,
             {
-                options: ["one", "two", "three"],
+                defaultValue: "one",
+                options: () => ["one", "two", "three"],
                 placeholder: "model",
-                itemComponent: props => (
-                    h(Select.Item,
-                      {
-                          item: props.item,
-                          class: "select__item"
-                      },
-                      h(Select.ItemLabel,
-                        props.item.rawValue
-                       ),
-                      h(Select.ItemIndicator,
-                        {
-                            class: "select__item-indicator"
-                        },
-                        "X"
-                       )
-                     )
-                )
+                itemComponent: () => props => {
+                    console.log("X", props);
+                    return h(Select.Item,
+                             {
+                                 item: props.item,
+                                 class: "select__item"
+                             },
+                             h('div', null, "A"),
+                             h(Select.ItemLabel, null,
+                               props.item.rawValue
+                              ),
+                             h('div', null, "B"),
+                             h(Select.ItemIndicator,
+                               {
+                                   class: "select__item-indicator"
+                               }
+                              )
+                            );
+                }
             },
+            //h(Select.Label),
+            h(Select.Trigger, {
+                class: "select__trigger"
+            },
+              h(Select.Value, {
+                  class: "select__value"
+              },
+                (state) => `> ${state.selectedOption()} <`
+               )
+             ),
             h(Select.Portal,
-              h(Select.Content)
+              null,
+              h(Select.Content, {
+                  class:"select__content",
+                  style: {
+                      "z-index": 1001
+                  }
+              },
+                h(Select.Listbox, {
+                  class:"select__listbox"
+                }))
              )
         );
 
