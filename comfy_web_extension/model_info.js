@@ -3,9 +3,10 @@
 //     onCleanup,
 // } from "https://cdn.skypack.dev/solid-js";
 import { render } from "https://cdn.skypack.dev/solid-js/web";
-import h from "https://cdn.skypack.dev/solid-js/h";
-import { createSignal, Show } from "https://cdn.skypack.dev/solid-js";
-import { Select } from "https://cdn.skypack.dev/@kobalte/core";
+import h from "https://cdn.skypack.dev/solid-js/h"; // h really just exports hyper-dom-expressions
+import { createSignal, Show, createEffect } from "https://cdn.skypack.dev/solid-js";
+//import { Select } from "https://cdn.skypack.dev/@kobalte/core";
+//import { Select } from "https://cdn.skypack.dev/@thisbeyond/solid-select";
 
 //import "./style.css";
 let styleLink = document.createElement("link");
@@ -18,11 +19,13 @@ class ModelInfoAPI {
     constructor() {
         this.url = new URL(location);
         this.url.pathname += "model_info/";
-        if(this.url.port.length > 0) {
-            this.url.port = Number(this.url.port) + 1;
-        }
-        else {
-            this.url.port = "8189";
+        if(false) {
+            if(this.url.port.length > 0) {
+                this.url.port = Number(this.url.port) + 1;
+            }
+            else {
+                this.url.port = "8189";
+            }
         }
     }
 
@@ -46,85 +49,93 @@ class ModelInfo {
         "checkpoints",
         "loras"
     ];
+    selectedModelType = null;
+    setSelectedModelType = null;
 
     constructor(integration) {
         this.integration = integration;
+        [this.selectedModelType, this.setSelectedModelType] = createSignal(this.modelTypes[0]);
+        [this.modelList, this.setModelList] = createSignal([]);
         [this.selectedModel, this.setSelectedModel] = createSignal(null);
         [this.expanded, this.setExpanded] = createSignal(true);
     }
 
-    createUI() {
-        if(this.ownMenu) {
-            this.menuContainer = h("div.comfy-menu", {}, [
-                h("div.drag-handle", {
-                    style: {
-                        overflow: "hidden",
-                        position: "relative",
-                        width: "100%",
-                        cursor: "default"
-                    }
-                }, [
-                    h("span.drag-handle"),
-                    h("span", {$: (q) => (this.queueSize = q)}),
-                    h("button.comfy-settings-btn", {textContent: "⚙️", onclick: () => console.log("click")}),
-                ])
-            ]);
-        }
-        else {
-            this.menuContainer = this.integration.getMenuContainer();
-        }
+    modelUI() {
+        // let modelButton = h(
+        //     Select.Root,
+        //     {
+        //         //defaultValue: () => this.modelList[0],
+        //         options: async () => {
+        //             let modelList = await this.info.listModels(this.selectedModelType());
+        //             console.dir(modelList);
+        //             return modelList;
+        //         },
+        //         placeholder: "model",
+        //         itemComponent: () => props => {
+        //             console.log("X", props);
+        //             return h(Select.Item,
+        //                      {
+        //                          item: props.item,
+        //                          class: "select__item"
+        //                      },
+        //                      h(Select.ItemLabel, null,
+        //                        props.item.rawValue
+        //                       ),
+        //                      h(Select.ItemIndicator,
+        //                        {
+        //                            class: "select__item-indicator"
+        //                        }
+        //                       )
+        //                     );
+        //         }
+        //     },
+        //     //h(Select.Label),
+        //     h(Select.Trigger, {
+        //         class: "comfy-btn"
+        //     },
+        //       h(Select.Value, {
+        //           class: "select__value"
+        //       },
+        //         (state) => `> ${state.selectedOption()} <`
+        //        )
+        //      ),
+        //     h(Select.Portal,
+        //       null,
+        //       h(Select.Content, {
+        //           class:"select__content",
+        //           style: {
+        //               "z-index": 1001
+        //           }
+        //       },
+        //         h(Select.Listbox, {
+        //           class:"select__listbox"
+        //         }))
+        //      )
+        // );
 
-        this.modelButton = h(
-            Select.Root,
+        let Select = "select";
+
+        createEffect(async () => {
+            this.setModelList(await this.info.listModels(this.selectedModelType()));
+        });
+
+        let modelButton = h(
+            Select,
             {
-                defaultValue: "one",
-                options: () => ["one", "two", "three"],
-                placeholder: "model",
-                itemComponent: () => props => {
-                    console.log("X", props);
-                    return h(Select.Item,
-                             {
-                                 item: props.item,
-                                 class: "select__item"
-                             },
-                             h('div', null, "A"),
-                             h(Select.ItemLabel, null,
-                               props.item.rawValue
-                              ),
-                             h('div', null, "B"),
-                             h(Select.ItemIndicator,
-                               {
-                                   class: "select__item-indicator"
-                               }
-                              )
-                            );
-                }
             },
-            //h(Select.Label),
-            h(Select.Trigger, {
-                class: "select__trigger"
-            },
-              h(Select.Value, {
-                  class: "select__value"
-              },
-                (state) => `> ${state.selectedOption()} <`
-               )
-             ),
-            h(Select.Portal,
-              null,
-              h(Select.Content, {
-                  class:"select__content",
-                  style: {
-                      "z-index": 1001
-                  }
-              },
-                h(Select.Listbox, {
-                  class:"select__listbox"
-                }))
-             )
+            () => {
+                let options = (this.modelList()).map(
+                    (v) => {
+                        console.dir("v", v)
+                        return h("option", {value: v}, v);
+                    });
+                    
+                console.dir(options);
+                return options;
+            }
         );
 
-        this.expandBtn = h(
+        let expandBtn = h(
             "button", {
                 textContent: "→",
                 onclick: async (ev) => {
@@ -133,7 +144,7 @@ class ModelInfo {
             }
         );
 
-        this.modelInfo = h(
+        let modelInfo = h(
             Show, {
                 when: this.expanded
             },
@@ -155,9 +166,33 @@ class ModelInfo {
             )
         );
 
-        render(this.modelButton, this.menuContainer);
-        render(this.expandBtn, this.menuContainer);
-        render(this.modelInfo, this.menuContainer);
+        // How do we make this empty?
+        return h((o) => o.children, null,
+                 modelButton, expandBtn, modelInfo);
+    }
+
+    async createUI() {
+        if(this.ownMenu) {
+            this.menuContainer = h("div.comfy-menu", {}, [
+                h("div.drag-handle", {
+                    style: {
+                        overflow: "hidden",
+                        position: "relative",
+                        width: "100%",
+                        cursor: "default"
+                    }
+                }, [
+                    h("span.drag-handle"),
+                    h("span", {$: (q) => (this.queueSize = q)}),
+                    h("button.comfy-settings-btn", {textContent: "⚙️", onclick: () => console.log("click")}),
+                ])
+            ]);
+        }
+        else {
+            this.menuContainer = this.integration.getMenuContainer();
+        }
+
+        render(((() => h(this.modelUI.bind(this)))).bind(this), this.menuContainer);
     }
 
     async selectModel(name) {
