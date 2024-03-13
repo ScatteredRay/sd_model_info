@@ -3,21 +3,26 @@ import crypto from 'crypto';
 import * as fs from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
+import { default as EasyDl } from 'easydl';
 
 export const modelTypeMap = {
     "LORA" : {
-        "dest" : "loras"
+        "dest" : "models/loras"
     },
     "LoCon" : {
-        "dest" : "loras"
+        "dest" : "models/loras"
     },
     "Checkpoint" : {
-        "dest" : "checkpoints"
+        "dest" : "models/checkpoints"
     },
     "TextualInversion" : {
-        "dest" : "embeddings"
+        "dest" : "models/embeddings"
     }
 };
+
+export function setModelTypeDest(type, dest) {
+    modelTypeMap[type].dest = dest;
+}
 
 export async function searchModels(query, types, limit = 10) {
     let url = new URL("https://civitai.com/api/v1/models");
@@ -103,7 +108,7 @@ export function getPathForModel(name, type) {
         throw Error(`Unknown type ${type}`);
     }
     let dest = modelType.dest;
-    return `models/${dest}/${name}`;
+    return `${dest}/${name}`;
 }
 
 export async function chooseFileForModel(model) {
@@ -130,16 +135,28 @@ export async function chooseFileForModel(model) {
 }
 
 export async function getWgetForModel(model) {
-    let file = await chooseFileForModel(model)
+    let file = await chooseFileForModel(model);
     let url = file.downloadUrl;
     let name = file.name;
     let type = file.modelType;
     if(type === undefined) {
-        console.log(model);
-        console.log(file);
+        return '#error: ${model}';
     }
     let dest = getPathForModel(name, type);
     return `wget -nc "${url}" -O "${dest}"`
+}
+
+
+export async function downloadForModel(model) {
+    let file = await chooseFileForModel(model);
+    if(!file.name || !file.downloadUrl || !file.modelType) {
+        throw new Error("Unable to download", file);
+    }
+    let dest = getPathForModel(file.name, file.modelType);
+    console.log("Download", dest, file.downloadUrl);
+    let dl = await (new EasyDl(file.downloadUrl, dest).wait())
+    console.log("downloaded", dl);
+    return dest;
 }
 
 export async function getWgetForFile(file) {

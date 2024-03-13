@@ -56,6 +56,25 @@ class ModelInfoAPI {
         //}
         return data;
     }
+
+    async downloadModel({name, modelId, versionId}) {
+        let api = null;
+        if(name) {
+            api = `api/model/${name}/download`;
+        }
+        else if(modelId) {
+            api = `api/model_id/${modelId}/download`;
+        }
+        else if(versionId) {
+            api = `api/model_version_id/${versionId}/download`;
+        }
+        else {
+            throw new Error("unknown");
+        }
+        let resp = await fetch(this.url + api);
+        let data = await resp.json();
+        return data;
+    }
 };
 
 class ModelInfo {
@@ -161,6 +180,18 @@ class ModelInfo {
             }
         });
 
+        let modelTypeButton = h(
+            Select,
+            {
+                onchange: (e) => this.setSelectedModelType(e.target.value)
+            },
+            (this.modelTypes.map(t =>
+                {
+                    console.log(t);
+                    return h("option", {value: t}, t);
+                }))
+        );
+
         let modelButton = h(
             Select,
             {
@@ -186,6 +217,14 @@ class ModelInfo {
             }
         );
 
+        let downloadSelected = () => {
+            this.info.downloadModel({
+                name: this.selectedModel(),
+                modelId: this.selectedModelId(),
+                versionId: this.selectedModelVersionId()
+            });
+        }
+
         let modelInfo = h(
             Show, {
                 when: this.expanded
@@ -193,6 +232,7 @@ class ModelInfo {
             h(
                 "div",
                 {
+                    style: "max-height: 400px;overflow: scroll;"
                 },
                 h("input", {
                     onchange: (e) => {
@@ -208,7 +248,7 @@ class ModelInfo {
                     h(Show, { when: this.modelInfo },
                       h("div", () => this.modelInfo().name),
                       h("button", {
-                          onclick : () => console.log("Download!")
+                          onclick : downloadSelected
                       }, "Download"),
                       h("div", null, () => {
                           let modelInfo = this.modelInfo();
@@ -230,7 +270,7 @@ class ModelInfo {
 
         // How do we make this empty?
         return h((o) => o.children, null,
-                 modelButton, expandBtn, modelInfo);
+                 modelTypeButton, modelButton, expandBtn, modelInfo);
     }
 
     async createUI() {

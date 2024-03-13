@@ -55,7 +55,7 @@ async function updateModels(type) {
 async function checkUpdateModels(type) {
     console.log((type in models), Object.keys(models[type]));
     if(!(type in models) || Object.keys(models[type]).length === 0) {
-        console.log("updateing");
+        console.log("updating");
         await updateModels(type);
     }
 }
@@ -90,22 +90,53 @@ app.get('/api/model_id/:id', errorWrap(async  (req, res) => {
     await res.send(await civitai.modelFromModelId(req.params.id));
 }));
 
+app.get('/api/model_id/:id/download', errorWrap(async  (req, res) => {
+    console.log("download", req.params.id);
+    await res.send(await civitai.downloadForModel(await civitai.modelFromModelId(req.params.id)));
+}));
 
 app.get('/api/model_version_id/:id', errorWrap(async  (req, res) => {
     await res.send(await civitai.modelFromVersionId(req.params.id));
 }));
 
-app.get('/api/model/:name', errorWrap(async (req, res) => {
-    let name = req.params.name;
+app.get('/api/model_version_id/:id/download', errorWrap(async  (req, res) => {
+    console.log("download", req.params.id);
+    await res.send(await civitai.downloadForModel(await civitai.modelFromVersionId(req.params.id)));
+}));
+
+async function getModelMeta(name) {
     for(let type of modelTypes) {
         await checkUpdateModels(type);
         if(name in models[type]) {
             let modelPath = models[type][name];
             console.log("path", modelPath);
-            return res.send(await civitai.getModelMetaForFile(modelPath));
+            return await civitai.getModelMetaForFile(modelPath);
         }
     }
-    return res.status(404).send(`Model ${name} not found`);
+    return null;
+}
+
+app.get('/api/model/:name', errorWrap(async (req, res) => {
+    let name = req.params.name;
+    let model = await getModelMeta(name);
+    if(model) {
+        return res.send(model);
+    }
+    else {
+        return res.status(404).send(`Model ${name} not found`);
+    }
+}));
+
+app.get('/api/model/:name/download', errorWrap(async (req, res) => {
+    let name = req.params.name;
+    console.log("download", name);
+    let model = await getModelMeta(name);
+    if(model) {
+        return res.send(await civitai.downloadForModel(model));
+    }
+    else {
+        return res.status(404).send(`Model ${name} not found`);
+    }
 }));
 
 let options = optionator({
@@ -147,6 +178,17 @@ if(options.defaultPaths) {
     let modelsDir = path.join(url.fileURLToPath(new URL('.', import.meta.url)), "../../../../models")
     dirs.checkpoints.push(path.join(modelsDir, "checkpoints"));  
     dirs.loras.push(path.join(modelsDir, "loras"));
+}
+
+let dirMap = {
+    loras: ["LORA", "LoCon"],
+    checkpoints: ["Checkpoint"]
+};
+
+for(let dir in dirs) {
+    for(let type of dirMap[dir]) {
+        civitai.setModelTypeDest(type, dirs[dir]);
+    }
 }
 
 let server = http.createServer(app);
