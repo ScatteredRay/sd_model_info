@@ -12,9 +12,9 @@
   "dependencies": {
     "@root/walk": "^1.1.0",
     "cors": "^2.8.5",
-    "easydl": "^1.1.1",
     "express": "^4.18.2",
     "node-fetch": "^3.3.2",
+    "nodejs-file-downloader": "^4.12.1",
     "optionator": "^0.9.3"
   }
 }

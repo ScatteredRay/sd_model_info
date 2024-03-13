@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import * as fs from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
-import { default as EasyDl } from 'easydl';
+import {default as Downloader} from 'nodejs-file-downloader';
 
 export const modelTypeMap = {
     "LORA" : {
@@ -19,6 +19,37 @@ export const modelTypeMap = {
         "dest" : "models/embeddings"
     }
 };
+
+export async function getAPIKey() {
+    if(process.env.CIVITAI_API_TOKEN) {
+        return process.env.CIVITAI_API_TOKEN;
+    }
+    else {
+        return null;
+    }
+}
+
+export async function getFetchAuthHeader() {
+    let apiKey = await getAPIKey();
+    if(apiKey) {
+        return `Bearer ${apiKey}`;
+    }
+    else {
+        return null;
+    }
+}
+
+export async function getFetchHeaders() {
+    let auth = await getFetchAuthHeader();
+    if(auth) {
+        return {
+            Authorization: auth
+        };
+    }
+    else {
+        return false;
+    }
+}
 
 export function setModelTypeDest(type, dest) {
     modelTypeMap[type].dest = dest;
@@ -153,9 +184,21 @@ export async function downloadForModel(model) {
         throw new Error("Unable to download", file);
     }
     let dest = getPathForModel(file.name, file.modelType);
+    console.log(await getWgetForModel(model));
     console.log("Download", dest, file.downloadUrl);
-    let dl = await (new EasyDl(file.downloadUrl, dest).wait())
-    console.log("downloaded", dl);
+    try {
+        let dl = new Downloader({
+            url: file.downloadUrl,
+            directory: path.dirname(dest),
+            fileName: path.basename(dest),
+            headers: await getFetchHeaders()
+        });
+        await dl.download();
+        console.log("downloaded");
+    }
+    catch (e) {
+        console.log("Error, ", e);
+    }
     return dest;
 }
 
