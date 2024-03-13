@@ -16,16 +16,28 @@ async def handleNode(request):
                 headers = resp.headers
             )
 
+async def readNode(stream, cb):
+    while True:
+        line = await stream.read(256)
+        if line:
+            cb(line)
+        else:
+            break
+
 async def launchNode():
     serverjs = os.path.abspath(os.path.join(os.path.dirname(__file__), 'host/src/server.js'))
     proc = await asyncio.create_subprocess_exec(
         'node', serverjs, '-d', '-p', '8189',
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
-    #await proc.wait()
+    await asyncio.wait([
+        asyncio.create_task(readNode(proc.stdout, lambda x: print("%s" % x))),
+        asyncio.create_task(readNode(proc.stderr, lambda x: print("%s" % x)))
+    ])
+    await proc.wait()
 
 def init():
-    asyncio.run(launchNode())
+    asyncio.ensure_future(launchNode())
     server.PromptServer.instance.app.add_routes([
         aiohttp.web.route('*', '/model_info/{tail:.*}', handleNode)
     ])

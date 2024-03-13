@@ -4,7 +4,7 @@
 // } from "https://cdn.skypack.dev/solid-js";
 import { render } from "https://cdn.skypack.dev/solid-js/web";
 import h from "https://cdn.skypack.dev/solid-js/h"; // h really just exports hyper-dom-expressions
-import { createSignal, Show, createEffect } from "https://cdn.skypack.dev/solid-js";
+import { createSignal, Show, For, createEffect } from "https://cdn.skypack.dev/solid-js";
 //import { Select } from "https://cdn.skypack.dev/@kobalte/core";
 //import { Select } from "https://cdn.skypack.dev/@thisbeyond/solid-select";
 
@@ -35,9 +35,25 @@ class ModelInfoAPI {
         return data.items;
     }
 
-    async modelInfo(name) {
-        let resp = await fetch(this.url + `api/model/${name}`);
+    async modelInfo({name, modelId, versionId}) {
+        let api = null;
+        if(name) {
+            api = `api/model/${name}`;
+        }
+        else if(modelId) {
+            api = `api/model_id/${modelId}`;
+        }
+        else if(versionId) {
+            api = `api/model_version_id/${versionId}`;
+        }
+        else {
+            return null;
+        }
+        let resp = await fetch(this.url + api);
         let data = await resp.json();
+        //if(data.modelVersions) {
+        //data = data.modelVersions[0];
+        //}
         return data;
     }
 };
@@ -49,14 +65,15 @@ class ModelInfo {
         "checkpoints",
         "loras"
     ];
-    selectedModelType = null;
-    setSelectedModelType = null;
 
     constructor(integration) {
         this.integration = integration;
         [this.selectedModelType, this.setSelectedModelType] = createSignal(this.modelTypes[0]);
         [this.modelList, this.setModelList] = createSignal([]);
         [this.selectedModel, this.setSelectedModel] = createSignal(null);
+        [this.selectedModelId, this.setSelectedModelId] = createSignal(null);
+        [this.selectedModelVersionId, this.setSelectedModelVersionId] = createSignal(null);
+        [this.modelInfo, this.setModelInfo] = createSignal(null);
         [this.expanded, this.setExpanded] = createSignal(true);
     }
 
@@ -119,18 +136,43 @@ class ModelInfo {
             this.setModelList(await this.info.listModels(this.selectedModelType()));
         });
 
+        createEffect(async () => {
+            let selectedModel = this.selectedModel();
+            let selectedModelId = this.selectedModelId();
+            let selectedModelVersionId = this.selectedModelVersionId();
+            console.log("effect");
+            if(selectedModelVersionId) {
+                console.dir(selectedModelVersionId);
+                this.setModelInfo(await this.info.modelInfo({versionId: selectedModelVersionId}));
+                console.dir("MI", this.modelInfo());
+            }
+            else if(selectedModelId) {
+                console.dir(selectedModelId);
+                this.setModelInfo(await this.info.modelInfo({modelId: selectedModelId}));
+                console.dir("MI", this.modelInfo());
+            }
+            else if(selectedModel) {
+                console.dir(selectedModel);
+                this.setModelInfo(await this.info.modelInfo({name: selectedModel}));
+                console.dir("MI", this.modelInfo());
+            }
+            else {
+                this.setModelInfo(null);
+            }
+        });
+
         let modelButton = h(
             Select,
             {
+                onchange: (e) => {
+                    this.selectModel(e.target.value);
+                }
             },
             () => {
                 let options = (this.modelList()).map(
                     (v) => {
-                        console.dir("v", v)
                         return h("option", {value: v}, v);
                     });
-                    
-                console.dir(options);
                 return options;
             }
         );
@@ -138,7 +180,7 @@ class ModelInfo {
         let expandBtn = h(
             "button", {
                 textContent: "→",
-                onclick: async (ev) => {
+                onclick: (ev) => {
                     this.setExpanded(!this.expanded())
                 }
             }
@@ -152,17 +194,37 @@ class ModelInfo {
                 "div",
                 {
                 },
+                h("input", {
+                    onchange: (e) => {
+                        this.selectModelId(e.target.value);
+                    }
+                }),
                 h("h2", "Model"),
                 h(Show,
                   {
-                      when: this.selectedModel,
+                      when: this.modelInfo,
                   },
                   h("div",
-                    h("div", this.selectedModel),
-                    h("div", "XXX")
+                    h(Show, { when: this.modelInfo },
+                      h("div", () => this.modelInfo().name),
+                      h("button", {
+                          onclick : () => console.log("Download!")
+                      }, "Download"),
+                      h("div", null, () => {
+                          let modelInfo = this.modelInfo();
+                          return modelInfo.model ? modelInfo.model.type : modelInfo.type ? modelInfo.type : "";
+                      }),
+                      h("div", null, () => this.modelInfo().baseModel),
+                      h("div", null, () => this.modelInfo().modelId),
+                      h(For, { each: () => this.modelInfo().modelVersions ? this.modelInfo().modelVersions[0].images : this.modelInfo().images },
+                        (img) => h("img", {src: img.url, style: "width: 100px; height: auto;"})
+                       ),
+                      h(For, { each: () => this.modelInfo().trainedWords },
+                        (word) => h("div", null, word)
+                       )
+                     )
                    )
-                 ),
-                h("span", "3")
+                 )
             )
         );
 
@@ -197,7 +259,20 @@ class ModelInfo {
 
     async selectModel(name) {
         this.setSelectedModel(name);
-        this.selectedModelInfo = await this.info.modelInfo(name);
+        this.setSelectedModelId(null);
+        this.setSelectedModelVersionId(null);
+    }
+
+    async selectModelId(id) {
+        this.setSelectedModel(null);
+        this.setSelectedModelId(id);
+        this.setSelectedModelVersionId(null);
+    }
+
+    async selectModelVersionId(id) {
+        this.setSelectedModel(null);
+        this.setSelectedModelId(null);
+        this.setSelectedModelVersionId(id);
     }
 
     init() {
@@ -222,6 +297,5 @@ async function RegisterComfyApp() {
 }
 
 if(true) {
-    console.log("register");
     await RegisterComfyApp();
 }

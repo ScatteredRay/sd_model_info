@@ -86,16 +86,22 @@ app.get('/api/models/:type', errorWrap(async (req, res) => {
     });
 }));
 
+app.get('/api/model_id/:id', errorWrap(async  (req, res) => {
+    await res.send(await civitai.modelFromModelId(req.params.id));
+}));
+
+
+app.get('/api/model_version_id/:id', errorWrap(async  (req, res) => {
+    await res.send(await civitai.modelFromVersionId(req.params.id));
+}));
+
 app.get('/api/model/:name', errorWrap(async (req, res) => {
     let name = req.params.name;
-    console.log(name);
     for(let type of modelTypes) {
         await checkUpdateModels(type);
-        console.log(type);
-        console.log(models[type]);
         if(name in models[type]) {
             let modelPath = models[type][name];
-            console.log(modelPath);
+            console.log("path", modelPath);
             return res.send(await civitai.getModelMetaForFile(modelPath));
         }
     }
