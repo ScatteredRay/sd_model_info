@@ -239,6 +239,11 @@ class ModelInfo {
                         this.selectModelId(e.target.value);
                     }
                 }),
+                h("input", {
+                    onchange: (e) => {
+                        this.selectModelVersionId(e.target.value);
+                    }
+                }),
                 h("h2", "Model"),
                 h(Show,
                   {
