@@ -5,6 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import server
 import asyncio
+import folder_paths
 
 async def handleNode(request):
     url = "http://127.0.0.1:8189/{}".format(request.match_info['tail'])
@@ -24,10 +25,13 @@ async def readNode(stream, cb):
         else:
             break
 
+
 async def launchNode():
+    checkpoint_folder = [f for f in folder_paths.get_folder_paths("checkpoints") if folder_paths.get_output_directory() not in f][-1]
+    lora_folder = [f for f in folder_paths.get_folder_paths("loras") if folder_paths.get_output_directory() not in f][-1]
     serverjs = os.path.abspath(os.path.join(os.path.dirname(__file__), 'host/src/server.js'))
     proc = await asyncio.create_subprocess_exec(
-        'node', serverjs, '-d', '-p', '8189',
+        'node', serverjs, -c, checkpoint_folder, -l, lora_folder, '-p', '8189',
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
     await asyncio.wait([
