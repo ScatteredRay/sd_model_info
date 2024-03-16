@@ -31,7 +31,7 @@ async def launchNode():
     lora_folder = [f for f in folder_paths.get_folder_paths("loras") if folder_paths.get_output_directory() not in f][-1]
     serverjs = os.path.abspath(os.path.join(os.path.dirname(__file__), 'host/src/server.js'))
     proc = await asyncio.create_subprocess_exec(
-        'node', serverjs, -c, checkpoint_folder, -l, lora_folder, '-p', '8189',
+        'node', serverjs, '-c', checkpoint_folder, '-l', lora_folder, '-p', '8189',
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
     await asyncio.wait([
